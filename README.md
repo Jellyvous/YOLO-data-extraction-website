@@ -1,3 +1,4 @@
+##Install
 Make sure your system's execution policy is set to allow running PowerShell scripts.
 Here's how you can do it:
 Open PowerShell as Administrator:
