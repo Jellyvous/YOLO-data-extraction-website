@@ -13,3 +13,5 @@ After changing the execution policy, we will install the virtual environment:
 - Go to the project's folder and paste the command in the terminal and enter: `python -m venv venv`
 - After that, run `.\venv\Scripts\activate` to activate the virtual environment.
 - Now your virtual environment is activated, you will need to install all the requirement libraries by running `pip install -r requirements.txt`
+
+All right, now everything is ready, run `python server.py` and the website will run in your computer host.
