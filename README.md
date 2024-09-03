@@ -8,6 +8,7 @@ Here's how you can do it:
 - Open PowerShell as Administrator
 - In the PowerShell window, enter the following command to allow scripts to run: `Set-ExecutionPolicy RemoteSigned`
 - You may be prompted to confirm the change. Type Y and press Enter.
-- After changing the execution policy, go to the project's folder and run the command in the terminal to install virtual environment: `python -m venv venv`
+After changing the execution policy, we will install the virtual environment:
+- Go to the project's folder and paste the command in the terminal and enter: `python -m venv venv`
 - After that, run `.\venv\Scripts\activate` to activate the virtual environment.
 - Now your virtual environment is activated, you will need to install all the requirement libraries by running `pip install -r requirements.txt`
