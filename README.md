@@ -7,7 +7,8 @@ Make sure your system's execution policy is set to allow running PowerShell scri
 Here's how you can do it:  
 - Open PowerShell as Administrator
 - In the PowerShell window, enter the following command to allow scripts to run: `Set-ExecutionPolicy RemoteSigned`
-- You may be prompted to confirm the change. Type Y and press Enter.  
+- You may be prompted to confirm the change. Type Y and press Enter.
+
 After changing the execution policy, we will install the virtual environment:
 - Go to the project's folder and paste the command in the terminal and enter: `python -m venv venv`
 - After that, run `.\venv\Scripts\activate` to activate the virtual environment.
