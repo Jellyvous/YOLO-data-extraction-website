@@ -15,3 +15,10 @@ After changing the execution policy, we will install the virtual environment:
 - Now your virtual environment is activated, you will need to install all the requirement libraries by running `pip install -r requirements.txt`.
 
 All right, now everything is ready, run `python server.py` and the website will run on your computer host.
+
+## Usage
+Open your web browser and enter the URL of the host where the application is running (Usually http://127.0.0.1:5000/).  
+On the main interface of the website, you will see a "Import Image" button. Click this button to open a file selection window and select the invoice image you want to extract data from. I have provided some sample invoices in the 'bills' folder of the project.  
+After selecting the invoice image, return to the main interface of the website and click the "Detect" button. The application will begin analyzing and extracting data from the selected invoice image.  
+Once the extraction process is complete, a JSON file containing the extracted invoice data will be automatically downloaded to your computer and the result will be saved in the 'result' folder of the project.  
+If you need further assistance or encounter any issues during use, please feel free to contact me.  
