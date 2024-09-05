@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, send_file, url_for, Response
 from werkzeug.utils import secure_filename, send_from_directory
+import torch
 import cv2
 import json
-import numpy as np
 from scipy.ndimage import interpolation as inter
 from PIL import Image
 import pytesseract
@@ -16,9 +16,9 @@ from ultralytics.utils.plotting import Annotator  # ultralytics.yolo.utils.plott
 from ultralytics import YOLO
 pathlib.PosixPath = pathlib.WindowsPath
 import logging
+
 import matplotlib.pyplot as plt
 from PIL import Image
-
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
@@ -26,10 +26,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 #Load model YOLO
 model = YOLO(r"yolo8v6.pt")  # Adjust the path to your YOLOv8 model
+torch.cuda.is_available()
 
 
 app = Flask(__name__)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\VietOCR\VietOCR.exe'
+
+config = Cfg.load_config_from_name('vgg_transformer')
+config['device'] = 'cpu'
+detector = Predictor(config)
+
+
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
 PRE_FOLDER = 'pre'
@@ -109,14 +116,14 @@ def process_image(image_path, filename):
     
 
     # Đọc ảnh
-    img = cv2.imread(image_path)
+    img = Image.open(image_path)
     
     # Chuyển đổi sang định dạng RGB cho model YOLO
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    results = model.predict(img_rgb)
+    
+    results = model.predict(img)
     
     # Tạo bản sao của img_rgb
-    img_copy = img_rgb.copy()
+    img_copy = img.copy()
     
     # Kết quả JSON
     result_json = {filename: []}
@@ -146,41 +153,48 @@ def process_image(image_path, filename):
                 
                 if cls == 0:
                     th = int(6)
-                    cropped_img = img_rgb[ymin-th:ymax+th, xmin-th:xmax+th]
+                    # Crop ảnh bằng PIL với tọa độ mở rộng
+                    cropped_img = img.crop((xmin-th, ymin-th, xmax+th, ymax+th))
                     b = [xmin-th, ymin-th, xmax+th, ymax+th]
                 elif cls == 2:
                     th = int(4)
-                    cropped_img = img_rgb[ymin-th:ymax+th, xmin-th:xmax+th]
+                    cropped_img = img.crop((xmin-th, ymin-th, xmax+th, ymax+th))
                     b = [xmin-th, ymin-th, xmax+th, ymax+th]
                 elif cls == 3:
                     th = int(8)
-                    cropped_img = img_rgb[ymin-th:ymax+th, xmin-th:xmax+th]
+                    cropped_img = img.crop((xmin-th, ymin-th, xmax+th, ymax+th))
                     b = [xmin-th, ymin-th, xmax+th, ymax+th]
                 else:
-                    cropped_img = img_rgb[ymin:ymax, xmin:xmax]
-                    b = bbox.xyxy[0]
+                    cropped_img = img.crop((xmin, ymin, xmax, ymax))
+                    b = [xmin, ymin, xmax, ymax]
 
                 annotator.box_label(b, model.names[cls])
                 
                 
+
+                
                 #Xử lý text
                 if cls == 0:
-                    text = pytesseract.image_to_string(cropped_img, lang='vie')
+                    #text = pytesseract.image_to_string(cropped_img, lang='vie')
+                    text = detector.predict(cropped_img)
                     clean_text = cleanning_text(text, cls)
                     item_info = {"item": clean_text}
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "item", clean_text))
                 elif cls == 1:
-                    text = pytesseract.image_to_string(cropped_img, lang='vie')
+                    #text = pytesseract.image_to_string(cropped_img, lang='vie')
+                    text = detector.predict(cropped_img)
                     clean_text = cleanning_text(text, cls)
                     store_data["store_name"] = clean_text
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "store", clean_text))
                 elif cls == 2:
-                    num_quan = pytesseract.image_to_string(cropped_img, config='-c tessedit_char_whitelist=0123456789')
+                    #num_quan = pytesseract.image_to_string(cropped_img, config='-c tessedit_char_whitelist=0123456789')
+                    num_quan = detector.predict(cropped_img)
                     clean_num = cleanning_num(num_quan,  cls)
                     item_info["price"] = clean_num
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "price", clean_num))
                 elif cls == 3:
-                    num_quan = pytesseract.image_to_string(cropped_img, config='--psm 10 tessedit_char_whitelist=0123456789')
+                    #num_quan = pytesseract.image_to_string(cropped_img, config='--psm 10 tessedit_char_whitelist=0123456789')
+                    num_quan = detector.predict(cropped_img)
                     clean_num = cleanning_num(num_quan,  cls)
                     item_info["quantity"] = clean_num
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "quantity", clean_num))
