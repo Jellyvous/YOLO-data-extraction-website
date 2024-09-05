@@ -1,114 +1,30 @@
-from flask import Flask, render_template, request, redirect, send_file, url_for, Response
-from werkzeug.utils import secure_filename, send_from_directory
-import torch
-import cv2
-import json
-from scipy.ndimage import interpolation as inter
-from PIL import Image
-import pytesseract
-import io
 import os
-import re
-import pathlib
 import sqlite3
-temp = pathlib.PosixPath
-from ultralytics.utils.plotting import Annotator  # ultralytics.yolo.utils.plotting is deprecated
-from ultralytics import YOLO
-pathlib.PosixPath = pathlib.WindowsPath
-import logging
-
-import matplotlib.pyplot as plt
+import json
+import cv2
 from PIL import Image
+import logging
+from ultralytics.utils.plotting import Annotator
+from ultralytics import YOLO
+from config import RESULT_FOLDER
+from utils.helper import handle_overlapping_boxes, group_aligned_labels, cleanning_text, cleanning_num
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
-logging.basicConfig(level=logging.DEBUG)
+# Load YOLO model globally to avoid reloading each time
+model = YOLO(r"yolo8v6.pt")
 
-#Load model YOLO
-model = YOLO(r"yolo8v6.pt")  # Adjust the path to your YOLOv8 model
-torch.cuda.is_available()
-
-
-app = Flask(__name__)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\VietOCR\VietOCR.exe'
-
+# Load VietOCR model
 config = Cfg.load_config_from_name('vgg_transformer')
 config['device'] = 'cpu'
 detector = Predictor(config)
 
+logging.basicConfig(level=logging.DEBUG)
 
-UPLOAD_FOLDER = 'uploads'
-RESULT_FOLDER = 'results'
-PRE_FOLDER = 'pre'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULT_FOLDER, exist_ok=True)
+# Your other processing functions (calculate_iou, handle_overlapping_boxes, etc.)
+# ...
 
-
-
-# Tính Iou
-def calculate_iou(box1, box2):
-    x1_min, y1_min, x1_max, y1_max = box1
-    x2_min, y2_min, x2_max, y2_max = box2
-    
-    xi1 = max(x1_min, x2_min)
-    yi1 = max(y1_min, y2_min)
-    xi2 = min(x1_max, x2_max)
-    yi2 = min(y1_max, y2_max)
-    
-    inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
-    
-    box1_area = (x1_max - x1_min) * (y1_max - y1_min)
-    box2_area = (x2_max - x2_min) * (y2_max - y2_min)
-    
-    union_area = box1_area + box2_area - inter_area
-    
-    iou = inter_area / union_area
-    
-    return iou
-
-
-#Xử lý nhãn đè lên nhau
-def handle_overlapping_boxes(boxes, iou_threshold=0.5):
-    filtered_boxes = []
-    
-    for i, box1 in enumerate(boxes):
-        keep = True
-        for j, box2 in enumerate(boxes):
-            if i != j:
-                iou = calculate_iou(box1.xyxy[0], box2.xyxy[0])
-                if iou > iou_threshold:
-                    if box1.conf < box2.conf:
-                        keep = False
-                        break
-        if keep:
-            filtered_boxes.append(box1)
-    
-    return filtered_boxes
-
-# Gom các nhãn thẳng hàng
-def group_aligned_labels(boxes, tolerance=15):
-    groups = []
-    used = [False] * len(boxes)
-    
-    for i in range(len(boxes)):
-        if not used[i]:
-            group = [boxes[i]]
-            used[i] = True
-            for j in range(i + 1, len(boxes)):
-                if not used[j]:
-                    y1_i = (boxes[i].xyxy[0][1] + boxes[i].xyxy[0][3]) / 2  # Trung bình tọa độ y của box i
-                    y1_j = (boxes[j].xyxy[0][1] + boxes[j].xyxy[0][3]) / 2  # Trung bình tọa độ y của box j
-                    if abs(y1_i - y1_j) <= tolerance:
-                        group.append(boxes[j])
-                        used[j] = True
-            groups.append(group)
-    
-    return groups
-
-
-# Xử lý hình ảnh
 def process_image(image_path, filename):
-    
     #kết nối db
     conn = sqlite3.connect('./database/detections.db')
     c = conn.cursor()
@@ -173,7 +89,7 @@ def process_image(image_path, filename):
                 
 
                 
-                #Xử lý text
+                #Text processing
                 if cls == 0:
                     #text = pytesseract.image_to_string(cropped_img, lang='vie')
                     text = detector.predict(cropped_img)
@@ -227,57 +143,6 @@ def process_image(image_path, filename):
         json.dump(result_json, f, ensure_ascii=False, indent=4)
 
     return result_json_path, processed_image_path
-
-def cleanning_text(text, cls):
-    clean_text = ""
-    #Xoá ký tự xuống dòng
-    text_without_space = text.replace('\n', ' ').strip()
     
-    #Lower chữ
-    final_lower = text_without_space.lower()
-    clean_text = re.sub(r'[^a-zA-ZâấầẩẫậăắằẳẵặáàảãạăắằẳẵặéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĂÂĐÊÔƠƯƵÁÀẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌỐỒỔỖỘỚỜỞỠỢÚÙỦŨỤỨỪỬỮỰÝỲỶỸỴ() ]+', '', final_lower)
-
-    return clean_text.strip()
-
-def cleanning_num(num, cls) :
-    clean_num = ""
-    #Xoá ký tự xuống dòng
-    text_without_space = num.replace('\n', ' ').strip()
-    
-    #Lower chữ
-    final_lower = text_without_space.lower()
-    clean_num = re.sub(r'[^0-9]+', '', final_lower)
-        
-    return clean_num.strip()
 
 
-
-@app.route('/')
-def hello_world():
-    return render_template('index.html', name='World')
-
-@app.route('/', methods=['POST', 'GET'])
-def predict_img():
-    if request.method == 'POST':
-        if 'file' in request.files:
-            f = request.files['file']
-            filename = secure_filename(f.filename)
-            basepath = os.path.dirname(__file__)
-            filepath = os.path.join(basepath, 'uploads', f.filename)
-            print ("Upload folder is", filepath)
-            f.save(filepath)
-            global imgpath
-            predict_img.imgpath = f.filename
-            print("printing predict_img ::::::", predict_img)
-            
-            result_json_path, processed_image_path = process_image(filepath, filename)
-            
-            return send_file(result_json_path, as_attachment=True)
-    
-@app.route('/download/<filename>')
-def download_file(filename):
-    return send_from_directory(RESULT_FOLDER, filename, as_attachment=True)
-                      
-
-if __name__ == '__main__':
-    app.run(debug=True)

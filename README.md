@@ -14,7 +14,7 @@ After changing the execution policy, we will install the virtual environment:
 - After that, run `.\venv\Scripts\activate` to activate the virtual environment.
 - Now your virtual environment is activated, you will need to install all the requirement libraries by running `pip install -r requirements.txt`.
 
-All right, now everything is ready, run `python server.py` and the website will run on your computer host.
+All right, now everything is ready, run `python app.py` and the website will run on your computer host.
 
 ## Usage
 Open your web browser and enter the URL of the host where the application is running (Usually http://127.0.0.1:5000/).  
