@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory
+from flask import Flask, render_template, request, send_file, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 import os
 from utils.process_image import process_image
@@ -24,10 +24,12 @@ def predict_img():
             filepath = os.path.join(UPLOAD_FOLDER, f.filename)
             f.save(filepath)
 
-            result_json_path, processed_image_path = process_image(filepath, filename)
+            result_json_path, processed_image_path, extracted_text = process_image(filepath, filename)
 
-            return send_file(result_json_path, as_attachment=True)
-
+            return jsonify({'extracted_text': extracted_text})
+        else:
+            return jsonify({'error': 'Invalid file type'}), 400
+    return jsonify({'error': 'No file uploaded'}), 400
 
 @app.route('/download/<filename>')
 def download_file(filename):

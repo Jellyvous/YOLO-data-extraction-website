@@ -21,33 +21,29 @@ detector = Predictor(config)
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Your other processing functions (calculate_iou, handle_overlapping_boxes, etc.)
-# ...
 
 def process_image(image_path, filename):
-    #kết nối db
+    # Connect to Database
     conn = sqlite3.connect('./database/detections.db')
     c = conn.cursor()
 
     
 
-    # Đọc ảnh
-    img = Image.open(image_path)
-    
-    # Chuyển đổi sang định dạng RGB cho model YOLO
-    
+    # Read image and change to RGB
+    img = Image.open(image_path)    
     results = model.predict(img)
     
-    # Tạo bản sao của img_rgb
     img_copy = img.copy()
     
-    # Kết quả JSON
     result_json = {filename: []}
     
-    # Danh sách tạm thời để theo dõi các mặt hàng đã được thêm vào
+    # Store extracted text
+    extracted_text = ""  
+    
+    # List of Items to track if the item has existed in the list
     added_items = []
     
-    # Lấy bounding boxes từ kết quả YOLO
+    # Extract bounding boxes from YOLO's results
     for r in results:
         annotator = Annotator(img_copy)
         bboxes = handle_overlapping_boxes(r.boxes)
@@ -69,7 +65,7 @@ def process_image(image_path, filename):
                 
                 if cls == 0:
                     th = int(6)
-                    # Crop ảnh bằng PIL với tọa độ mở rộng
+                    # Crop image
                     cropped_img = img.crop((xmin-th, ymin-th, xmax+th, ymax+th))
                     b = [xmin-th, ymin-th, xmax+th, ymax+th]
                 elif cls == 2:
@@ -95,24 +91,28 @@ def process_image(image_path, filename):
                     text = detector.predict(cropped_img)
                     clean_text = cleanning_text(text, cls)
                     item_info = {"item": clean_text}
+                    extracted_text += f"Item: {clean_text}\n"
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "item", clean_text))
                 elif cls == 1:
                     #text = pytesseract.image_to_string(cropped_img, lang='vie')
                     text = detector.predict(cropped_img)
                     clean_text = cleanning_text(text, cls)
                     store_data["store_name"] = clean_text
+                    extracted_text += f"store_name: {clean_text}\n"
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "store", clean_text))
                 elif cls == 2:
                     #num_quan = pytesseract.image_to_string(cropped_img, config='-c tessedit_char_whitelist=0123456789')
                     num_quan = detector.predict(cropped_img)
                     clean_num = cleanning_num(num_quan,  cls)
                     item_info["price"] = clean_num
+                    extracted_text += f"Price: {clean_num}\n"
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "price", clean_num))
                 elif cls == 3:
                     #num_quan = pytesseract.image_to_string(cropped_img, config='--psm 10 tessedit_char_whitelist=0123456789')
                     num_quan = detector.predict(cropped_img)
                     clean_num = cleanning_num(num_quan,  cls)
                     item_info["quantity"] = clean_num
+                    extracted_text += f"Quantity: {clean_num}\n"
                     c.execute("INSERT INTO detections (image_name, detected_class, detected_text) VALUES (?, ?, ?)", (filename, "quantity", clean_num))
                 else:
                     extracted_text += "EROR"
@@ -142,7 +142,7 @@ def process_image(image_path, filename):
     with open(result_json_path, 'w', encoding='utf-8') as f:
         json.dump(result_json, f, ensure_ascii=False, indent=4)
 
-    return result_json_path, processed_image_path
+    return result_json_path, processed_image_path, extracted_text
     
 
 

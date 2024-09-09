@@ -1,7 +1,7 @@
 import re
 
 
-# Tính Iou
+# Iou
 def calculate_iou(box1, box2):
     x1_min, y1_min, x1_max, y1_max = box1
     x2_min, y2_min, x2_max, y2_max = box2
@@ -22,7 +22,7 @@ def calculate_iou(box1, box2):
     
     return iou
 
-#Xử lý nhãn đè lên nhau
+# Overlap labels handle
 def handle_overlapping_boxes(boxes, iou_threshold=0.5):
     filtered_boxes = []
     
@@ -40,7 +40,7 @@ def handle_overlapping_boxes(boxes, iou_threshold=0.5):
     
     return filtered_boxes
 
-# Gom các nhãn thẳng hàng
+# Group labels with the same column (represent for each item)
 def group_aligned_labels(boxes, tolerance=15):
     groups = []
     used = [False] * len(boxes)
@@ -51,8 +51,8 @@ def group_aligned_labels(boxes, tolerance=15):
             used[i] = True
             for j in range(i + 1, len(boxes)):
                 if not used[j]:
-                    y1_i = (boxes[i].xyxy[0][1] + boxes[i].xyxy[0][3]) / 2  # Trung bình tọa độ y của box i
-                    y1_j = (boxes[j].xyxy[0][1] + boxes[j].xyxy[0][3]) / 2  # Trung bình tọa độ y của box j
+                    y1_i = (boxes[i].xyxy[0][1] + boxes[i].xyxy[0][3]) / 2  # Calculate the average y-coordinate of box i
+                    y1_j = (boxes[j].xyxy[0][1] + boxes[j].xyxy[0][3]) / 2  # Calculate the average y-coordinate of box j
                     if abs(y1_i - y1_j) <= tolerance:
                         group.append(boxes[j])
                         used[j] = True
@@ -60,25 +60,26 @@ def group_aligned_labels(boxes, tolerance=15):
     
     return groups
 
-#Xử lý kết quả nhận diện chữ
+# Clean Data
 def cleanning_text(text, cls):
     clean_text = ""
-    #Xoá ký tự xuống dòng
+    
+    # Remove newline characters
     text_without_space = text.replace('\n', ' ').strip()
     
-    #Lower chữ
+    # Convert text to lowercase
     final_lower = text_without_space.lower()
     clean_text = re.sub(r'[^a-zA-ZâấầẩẫậăắằẳẵặáàảãạăắằẳẵặéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĂÂĐÊÔƠƯƵÁÀẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌỐỒỔỖỘỚỜỞỠỢÚÙỦŨỤỨỪỬỮỰÝỲỶỸỴ() ]+', '', final_lower)
 
     return clean_text.strip()
 
-#Xử lý kết quả nhận diện số
 def cleanning_num(num, cls) :
     clean_num = ""
-    #Xoá ký tự xuống dòng
+    
+    # Remove newline characters
     text_without_space = num.replace('\n', ' ').strip()
     
-    #Lower chữ
+    # Convert text to lowercase
     final_lower = text_without_space.lower()
     clean_num = re.sub(r'[^0-9]+', '', final_lower)
         
