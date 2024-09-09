@@ -11,8 +11,12 @@ function loadImage(event) {
 }
 
 const form = document.querySelector('form');
+const detectImageButton = document.getElementById('detect-button');
 form.addEventListener('submit', function(event) {
     event.preventDefault();
+
+    // Disable the button when form is submitted
+    detectImageButton.disabled = true;
     
     const formData = new FormData(form);
     fetch('/', {
@@ -27,8 +31,13 @@ form.addEventListener('submit', function(event) {
             console.error('Error:', data.error);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => console.error('Error:', error))
+    .finally(() => {
+        // Re-enable the button after the server responds
+        detectImageButton.disabled = false;
+    });
 });
+
 
 function processTextToJSON(text) {
     const lines = text.split('\n');
