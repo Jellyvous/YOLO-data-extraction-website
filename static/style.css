@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    margin-top: 50px;
+}
+
+button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#image-box {
+    margin-top: 20px;
+    border: 2px solid #ccc;
+    padding: 20px;
+    display: inline-block;
+    width: 80%;
+    height: 400px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+
+#text-box {
+    margin-top: 20px;
+    border: 2px solid #ccc;
+    padding: 20px;
+    display: inline-block;
+    width: 80%;
+    height: 400px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+
+#image-box img {
+    max-width: 100%;
+    max-height: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
